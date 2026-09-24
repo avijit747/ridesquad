@@ -1,0 +1,10 @@
+node_modules
+server/node_modules
+android
+.idea
+.claude
+.git
+*.md
+capacitor.config.json
+package.json
+package-lock.json

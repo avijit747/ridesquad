@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+<meta name="theme-color" content="#0a0c10" />
+<title>RideSquad</title>
+<link rel="icon" href="img/icon.svg" type="image/svg+xml" />
+<link rel="apple-touch-icon" href="img/icon.svg" />
+<link rel="manifest" href="manifest.webmanifest" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+<!-- ===== SPLASH ===== -->
+<section id="screen-splash" class="screen active">
+  <div class="splash-wrap">
+    <div class="splash-glow"></div>
+    <svg class="splash-bike" viewBox="0 0 200 120" xmlns="http://www.w3.org/2000/svg">
+      <path d="M45,92 L70,70 L96,70" stroke="var(--fg)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+      <path d="M70,70 Q80,50 106,50 L130,50 Q140,50 145,59 L151,70 L96,70 Z" fill="var(--fg)"/>
+      <path d="M145,59 L163,48 M151,70 L156,92" stroke="var(--accent)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+      <line x1="163" y1="48" x2="178" y2="44" stroke="var(--accent)" stroke-width="6" stroke-linecap="round"/>
+      <circle cx="151" cy="64" r="4.5" fill="var(--accent)"/>
+      <line x1="45" y1="92" x2="20" y2="96" stroke="var(--fg)" stroke-width="6" stroke-linecap="round"/>
+      <circle cx="45" cy="92" r="22" fill="none" stroke="var(--fg)" stroke-width="6"/>
+      <circle cx="45" cy="92" r="5" fill="var(--accent)"/>
+      <circle cx="156" cy="92" r="22" fill="none" stroke="var(--fg)" stroke-width="6"/>
+      <circle cx="156" cy="92" r="5" fill="var(--accent)"/>
+    </svg>
+    <h1 class="splash-title">RIDE<span>SQUAD</span></h1>
+    <p class="splash-tag">Ride together. Talk live. Stay safe.</p>
+    <div class="splash-loader"><div class="bar"></div></div>
+  </div>
+</section>
+
+<!-- ===== ONBOARDING ===== -->
+<section id="screen-onboarding" class="screen">
+  <div class="onboard-wrap">
+    <h2 class="onboard-title">Set up your <span>rider profile</span></h2>
+    <label class="field-label">Rider name</label>
+    <input id="input-name" class="field-input" maxlength="18" placeholder="e.g. Avi" autocomplete="off" />
+    <label class="field-label">Pick your color</label>
+    <div id="color-picker" class="color-picker"></div>
+    <label class="field-label">Bike</label>
+    <div id="bike-picker" class="chip-row"></div>
+    <button id="btn-start-riding" class="btn btn-primary btn-block">Start Riding →</button>
+  </div>
+</section>
+
+<!-- ===== APP SHELL ===== -->
+<div id="app-shell" class="app-shell">
+
+  <header class="topbar">
+    <div class="topbar-left">
+      <span id="ride-status-dot" class="status-dot"></span>
+      <span id="ride-status-text">Not connected</span>
+    </div>
+    <div class="topbar-right">
+      <span id="gps-badge" class="badge">GPS —</span>
+    </div>
+  </header>
+
+  <!-- ---- HOME / DASHBOARD ---- -->
+  <section id="screen-home" class="screen app-screen">
+    <div class="dash">
+      <div id="weather-widget" class="weather-widget" style="display:none">
+        <span id="weather-emoji" class="weather-emoji">🌡️</span>
+        <div class="weather-info">
+          <div id="weather-temp" class="weather-temp">--°C</div>
+          <div id="weather-label" class="weather-label">—</div>
+        </div>
+        <div id="weather-extra" class="weather-extra"></div>
+      </div>
+      <div id="rain-alert" class="rain-alert" style="display:none">🌧️ Rain likely in the next few hours — ride safe.</div>
+
+      <div class="gauge-wrap">
+        <svg id="gauge-svg" viewBox="0 0 300 300" class="gauge-svg">
+          <circle cx="150" cy="150" r="128" class="gauge-track"/>
+          <circle cx="150" cy="150" r="128" class="gauge-fill" id="gauge-fill"/>
+          <g id="gauge-ticks"></g>
+        </svg>
+        <div class="gauge-center">
+          <div id="speed-value" class="speed-value">0</div>
+          <div class="speed-unit">km/h</div>
+        </div>
+      </div>
+
+      <div class="stat-row">
+        <div class="stat-card">
+          <div class="stat-label">Trip Time</div>
+          <div id="stat-time" class="stat-value">00:00:00</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Accel</div>
+          <div id="stat-accel" class="stat-value">0.0<span class="stat-sub">m/s²</span></div>
+        </div>
+      </div>
+      <div class="stat-row">
+        <div class="stat-card">
+          <div class="stat-label">Distance</div>
+          <div id="stat-distance" class="stat-value">0.00<span class="stat-sub">km</span></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Max Speed</div>
+          <div id="stat-max" class="stat-value">0<span class="stat-sub">km/h</span></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Avg Speed</div>
+          <div id="stat-avg" class="stat-value">0<span class="stat-sub">km/h</span></div>
+        </div>
+      </div>
+
+      <div class="stat-row" id="limits-row" style="display:none">
+        <div class="stat-card" id="stat-squad-limit-card" style="display:none">
+          <div class="stat-label">Squad Limit</div>
+          <div id="stat-squad-limit" class="stat-value">—<span class="stat-sub">km/h</span></div>
+        </div>
+        <div class="stat-card" id="stat-road-limit-card" style="display:none">
+          <div class="stat-label">Road Limit <span class="beta-tag">BETA</span></div>
+          <div id="stat-road-limit" class="stat-value">—<span class="stat-sub">km/h</span></div>
+        </div>
+      </div>
+
+      <div class="ride-controls">
+        <button id="btn-ride-toggle" class="btn btn-primary btn-block">▶ Start Ride</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ---- SQUAD MAP ---- -->
+  <section id="screen-map" class="screen app-screen">
+    <div id="leaflet-map" class="leaflet-map"></div>
+    <div class="map-overlay-top">
+      <div id="map-room-pill" class="pill">No squad joined</div>
+      <div id="destination-pill" class="pill destination-pill" style="display:none"></div>
+    </div>
+    <button id="btn-recenter" class="fab-secondary">⊕</button>
+    <button id="btn-hazard" class="fab-secondary fab-hazard">⚠️</button>
+    <button id="btn-destination" class="fab-secondary fab-destination">🎯</button>
+  </section>
+
+  <!-- ---- SQUAD / MEMBERS ---- -->
+  <section id="screen-squad" class="screen app-screen">
+    <div class="squad-wrap">
+      <div id="squad-join-box" class="card">
+        <h3>Join or create a squad</h3>
+        <div class="join-row">
+          <input id="input-room" class="field-input" maxlength="12" placeholder="SQUAD CODE (e.g. RZ7X)" autocomplete="off" style="text-transform:uppercase" />
+          <button id="btn-join-room" class="btn btn-primary">Join</button>
+        </div>
+        <button id="btn-new-room" class="btn btn-ghost btn-block">Create New Squad</button>
+      </div>
+
+      <div id="squad-active-box" class="card" style="display:none">
+        <div class="squad-header">
+          <div>
+            <h3>Squad <span id="squad-code-display">—</span></h3>
+            <div id="squad-count" class="muted">0 riders</div>
+          </div>
+          <button id="btn-leave-room" class="btn btn-danger-outline">Leave</button>
+        </div>
+
+        <div class="speed-limit-row">
+          <input id="input-speed-limit" class="field-input speed-limit-input" type="number" min="1" max="300" placeholder="Squad speed limit, km/h" />
+          <button id="btn-set-speed-limit" class="btn btn-primary">Set</button>
+        </div>
+        <div id="speed-limit-current" class="muted" style="display:none"></div>
+
+        <div class="voice-bar">
+          <button id="btn-mic-toggle" class="mic-toggle-btn">
+            <span class="mic-toggle-icon">🎙</span>
+            <span class="mic-toggle-label">MIC OFF</span>
+          </button>
+          <div id="voice-status" class="voice-status">Tap MIC ON to connect voice with your squad</div>
+        </div>
+
+        <div class="quick-actions-row">
+          <button id="btn-status-ok" class="quick-status-btn status-ok" data-status="✅ I'm OK — all good here.">
+            <span class="quick-status-emoji">✅</span>I'm OK
+          </button>
+          <button id="btn-status-fuel" class="quick-status-btn status-fuel" data-status="⛽ Stopping for a fuel break.">
+            <span class="quick-status-emoji">⛽</span>Fuel Break
+          </button>
+          <button id="btn-status-food" class="quick-status-btn status-food" data-status="🍔 Stopping for a food break.">
+            <span class="quick-status-emoji">🍔</span>Food Break
+          </button>
+        </div>
+
+        <div id="member-list" class="member-list"></div>
+
+        <div class="chat-box">
+          <div id="chat-log" class="chat-log"></div>
+          <div class="chat-input-row">
+            <input id="chat-input" class="field-input" placeholder="Message the squad…" maxlength="200" />
+            <button id="btn-chat-send" class="btn btn-primary">Send</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ---- SETTINGS ---- -->
+  <section id="screen-settings" class="screen app-screen">
+    <div class="squad-wrap">
+      <div class="card">
+        <h3>Display</h3>
+        <p class="muted">Pick a mode for how you'll be riding — switch anytime.</p>
+        <div id="theme-picker" class="theme-picker"></div>
+      </div>
+      <div class="card">
+        <h3>Road Speed Limit <span class="beta-tag">BETA</span></h3>
+        <p class="muted">Best-effort lookup from OpenStreetMap road data. Coverage is patchy — especially outside major cities — so it will often show "no data". Never rely on this over actual road signage.</p>
+        <label class="toggle-row">
+          <span>Show road speed limit while riding</span>
+          <input id="toggle-road-speed" type="checkbox" class="toggle-switch" />
+        </label>
+      </div>
+      <div class="card">
+        <h3>Rider Profile</h3>
+        <label class="field-label">Name</label>
+        <input id="settings-name" class="field-input" maxlength="18" />
+        <label class="field-label">Emergency contact note (shown to squad on SOS)</label>
+        <input id="settings-note" class="field-input" placeholder="Blood group, allergy, contact #..." maxlength="120" />
+        <button id="btn-save-settings" class="btn btn-primary btn-block">Save</button>
+      </div>
+      <div class="card">
+        <h3>About</h3>
+        <p class="muted">RideSquad — a sporty group-riding companion. Live speed &amp; trip stats, weather, squad map with live positions, MIC ON/OFF group voice, squad speed limits, hazard reports, and one-tap SOS. Works fully peer-relayed over your local network / internet — no ride data stored on any server.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Floating SOS button -->
+  <button id="btn-sos" class="fab-sos">
+    <span class="sos-pulse"></span>
+    <span class="sos-label">SOS</span>
+  </button>
+
+  <!-- Bottom nav -->
+  <nav class="bottom-nav">
+    <button class="nav-btn active" data-screen="home"><span class="nav-icon">🏍️</span><span>Home</span></button>
+    <button class="nav-btn" data-screen="map"><span class="nav-icon">🗺️</span><span>Map</span></button>
+    <button class="nav-btn" data-screen="squad"><span class="nav-icon">👥</span><span>Squad</span></button>
+    <button class="nav-btn" data-screen="settings"><span class="nav-icon">⚙️</span><span>Settings</span></button>
+  </nav>
+</div>
+
+<!-- ===== SOS SEND CONFIRM OVERLAY ===== -->
+<div id="sos-confirm-overlay" class="overlay">
+  <div class="sos-confirm-box">
+    <div class="sos-ring">
+      <div id="sos-countdown" class="sos-countdown">3</div>
+    </div>
+    <div class="sos-confirm-text">Sending emergency alert to your squad…</div>
+    <button id="btn-sos-cancel" class="btn btn-block btn-ghost">Tap to Cancel</button>
+  </div>
+</div>
+
+<!-- ===== SOS INCOMING OVERLAY ===== -->
+<div id="sos-incoming-overlay" class="overlay danger">
+  <div class="sos-incoming-box">
+    <div class="sos-incoming-icon">🚨</div>
+    <div id="sos-incoming-name" class="sos-incoming-name">Rider</div>
+    <div id="sos-incoming-msg" class="sos-incoming-msg">needs help!</div>
+    <div id="sos-incoming-dist" class="sos-incoming-dist"></div>
+    <div class="sos-incoming-actions">
+      <button id="btn-sos-view" class="btn btn-primary btn-block">View on Map</button>
+      <button id="btn-sos-dismiss" class="btn btn-ghost btn-block">Dismiss</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== DESTINATION PICKER ===== -->
+<div id="destination-picker-overlay" class="overlay">
+  <div class="hazard-picker-box">
+    <h3>Set destination here?</h3>
+    <p class="muted">Choose who this destination is for.</p>
+    <button id="btn-dest-mine" class="btn btn-primary btn-block">📍 Just for Me</button>
+    <button id="btn-dest-squad" class="btn btn-safe-outline btn-block" style="margin-top:12px">🏁 Share with Squad</button>
+    <button id="btn-dest-cancel" class="btn btn-ghost btn-block">Cancel</button>
+  </div>
+</div>
+
+<!-- ===== HAZARD REPORT PICKER ===== -->
+<div id="hazard-picker-overlay" class="overlay">
+  <div class="hazard-picker-box">
+    <h3>Report a hazard</h3>
+    <p class="muted">Shared with your squad's map for about 45 minutes.</p>
+    <div class="hazard-grid">
+      <button class="hazard-option" data-hazard="police"><span class="hazard-option-emoji">🚓</span>Police Check</button>
+      <button class="hazard-option" data-hazard="road"><span class="hazard-option-emoji">🚧</span>Bad Road</button>
+      <button class="hazard-option" data-hazard="traffic"><span class="hazard-option-emoji">🚦</span>Traffic Jam</button>
+      <button class="hazard-option" data-hazard="accident"><span class="hazard-option-emoji">⚠️</span>Accident</button>
+    </div>
+    <button id="btn-hazard-cancel" class="btn btn-ghost btn-block">Cancel</button>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>

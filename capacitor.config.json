@@ -1,0 +1,13 @@
+{
+  "appId": "com.ridesquad.app",
+  "appName": "RideSquad",
+  "webDir": "public",
+  "backgroundColor": "#0a0c10",
+  "server": {
+    "url": "http://10.20.45.75:8787",
+    "cleartext": true
+  },
+  "android": {
+    "backgroundColor": "#0a0c10"
+  }
+}

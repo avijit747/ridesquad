@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">RideSquad</string>
+    <string name="title_activity_main">RideSquad</string>
+    <string name="package_name">com.ridesquad.app</string>
+    <string name="custom_url_scheme">com.ridesquad.app</string>
+</resources>
