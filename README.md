@@ -39,28 +39,23 @@ Two things to know:
   then open the `https://…ngrok…` URL on every rider's phone.
 - **Everyone joins the same squad code.** One rider taps "Create New Squad" (gets a code like `RZ7X`), shares it verbally/by text, and the others enter it under "Join". All riders then appear on each other's map, member list, and voice channel.
 
-## Deploying the server for free (so it's always online)
+## Deployment — the server is live
 
-Everything below is already done in this repo — you just need to create a free account and click deploy.
+**Live URL: [https://ridesquad-fli7.onrender.com](https://ridesquad-fli7.onrender.com)** — deployed on [Render](https://render.com)'s free tier, Singapore region. Anyone can open that URL directly in a phone browser and use the app right now; no local server needed. `capacitor.config.json` points the Android app at this same URL, so the native app talks to it too.
 
-**Why this fixes the recurring "app not working" problem:** right now the server only runs when someone starts it on this PC, and the Android app has to be told this PC's LAN IP by hand — which breaks the moment the PC is off, asleep, or the router hands out a new IP. Deploying the server to a real host removes both problems: it runs independently of this machine, at a stable HTTPS address, reachable from any network in the world (WiFi or mobile data) — not just this house's WiFi.
+**Why this fixes the recurring "app not working" problem:** the server used to only run when someone started it on this PC, and the Android app had to be told this PC's LAN IP by hand — which broke the moment the PC was off, asleep, or the router handed out a new IP. This deployment runs independently of any local machine, at a stable HTTPS address, reachable from any network in the world.
 
-**Recommended: [Northflank](https://northflank.com) free "Sandbox" tier** — genuinely always-on (no sleep/cold-start, unlike most free tiers), supports WebSockets, no credit card required. (Render's free tier also works but sleeps after ~15 min idle, adding a delay before the first connection after a quiet spell; Railway and Fly.io dropped their free tiers in 2026.)
+**One real tradeoff:** Render's free tier spins the instance down after ~15 minutes of inactivity. The first request after a quiet spell takes a few extra seconds while it wakes back up — everything after that is normal speed. If that becomes annoying, the fix is upgrading that one service to Render's paid tier (~$7/mo), or moving to a provider with a truly always-on free tier (Northflank's free Sandbox was the other option considered — genuinely no cold start, but requires a card on file for verification even though it isn't charged).
 
-**What's already prepared for you:**
-- [`Dockerfile`](Dockerfile) at the repo root — builds a small, self-contained image (Node 20 Alpine) with just the server's own dependency (`ws`), not the whole Capacitor/Android toolchain. Tested: `npm install` inside `server/` succeeds standalone.
+**What made this deployable:**
+- [`Dockerfile`](Dockerfile) at the repo root — Node 20 Alpine, installs only the server's own dependency (`ws`), not the whole Capacitor/Android toolchain.
 - [`server/package.json`](server/package.json) + lockfile — the server's dependencies, isolated from the root `package.json` (which is for the Capacitor/Android side).
-- `.dockerignore` — keeps `android/`, `node_modules`, etc. out of the build.
-- A `/healthz` endpoint (returns `200 ok`) — most hosts want this to confirm the container is alive; point the platform's health check at `/healthz` if it asks.
-- `server.js` already reads the port from `process.env.PORT` (falls back to 8787 locally), which is exactly what every one of these hosts expects.
+- A `/healthz` endpoint (returns `200 ok`) — Render's health check polls this to confirm the container's alive.
+- `server.js` reads the port from `process.env.PORT` (falls back to 8787 locally) — exactly what Render (and every host like it) expects.
 
-**Steps:**
-1. Push this folder to a GitHub repo (Northflank deploys from a repo, or you can use their CLI to deploy a local folder directly — either works).
-2. In Northflank: New Service → Deployment → point it at the repo (or local folder) → it'll detect the `Dockerfile` automatically → set the port to `8787` → deploy.
-3. Once live, copy the public HTTPS URL it gives you (something like `https://ridesquad--xxxx.northflank.app`).
-4. Update `capacitor.config.json`: set `server.url` to that HTTPS URL, and you can drop `"cleartext": true` (only needed for the old plain-`http://LAN-IP` setup — a real host gives you HTTPS, which also means `wss://` for the WebSocket automatically, no code changes needed there).
-5. Run `npx cap sync android`, rebuild in Android Studio.
-6. For browser/PWA use, just share the public URL directly — no local server needed anymore.
+**To redeploy after code changes:** just `git push` to `main` — Render's set to auto-deploy on every commit to this repo.
+
+**If you ever need to move it elsewhere:** repeat the same steps against Northflank, Railway, Fly.io, or any Docker-friendly host — nothing here is Render-specific except the final URL.
 
 **Abuse protection (because this is now reachable by strangers, not just your WiFi):** `server.js` includes several limits so one misbehaving client can't degrade things for everyone sharing the free instance:
 - Squad codes are now 8 characters (~1.1 trillion combinations) instead of 5 — brute-forcing a live squad code is impractical.
